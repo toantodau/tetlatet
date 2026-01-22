@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tết Bính Ngọ 2026 | Ethereal Edition</title>
+    
+    <!-- Fonts Nghệ Thuật -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Great+Vibes&family=Montserrat:wght@200&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Layer 0: WebGL Shader Background -->
+    <canvas id="gl-canvas"></canvas>
+    <div class="vignette-overlay"></div>
+
+    <!-- Layer 1: Decor -->
+    <div class="decor-layer">
+        <div class="lantern-container left">
+            <div class="string"></div>
+            <div class="lantern-body"><div class="lantern-text">PHÚC</div></div>
+            <div class="tassel"></div>
+        </div>
+        <div class="lantern-container right">
+            <div class="string"></div>
+            <div class="lantern-body"><div class="lantern-text">LỘC</div></div>
+            <div class="tassel"></div>
+        </div>
+    </div>
+
+    <!-- Layer 2: Main Content -->
+    <main class="main-stage">
+        <!-- Khung viền mảnh mai -->
+        <div class="border-line top"></div>
+        <div class="border-line bottom"></div>
+        <div class="border-line left"></div>
+        <div class="border-line right"></div>
+        <div class="corner topleft"></div>
+        <div class="corner topright"></div>
+        <div class="corner bottomleft"></div>
+        <div class="corner bottomright"></div>
+
+        <header class="hero-text">
+            <div class="reveal-wrapper">
+                <h2 class="year-label text-reveal">Chuyển giao năm cũ & năm mới</h2>
+            </div>
+            
+            <div class="title-container">
+                <h1 class="main-title text-reveal-char">XUÂN BÍNH NGỌ</h1>
+                <h1 class="year-number text-reveal-char">2026</h1>
+            </div>
+
+            <div class="reveal-wrapper">
+                <p class="wish-text text-reveal">Cung Chúc Tân Xuân - Vạn Sự Như Ý</p>
+            </div>
+        </header>
+
+        <div class="countdown-container">
+            <div class="timer-block">
+                <span class="timer-val" id="d">00</span>
+                <span class="timer-label">Ngày</span>
+            </div>
+            <div class="separator">|</div>
+            <div class="timer-block">
+                <span class="timer-val" id="h">00</span>
+                <span class="timer-label">Giờ</span>
+            </div>
+            <div class="separator">|</div>
+            <div class="timer-block">
+                <span class="timer-val" id="m">00</span>
+                <span class="timer-label">Phút</span>
+            </div>
+            <div class="separator">|</div>
+            <div class="timer-block is-gold">
+                <span class="timer-val" id="s">00</span>
+                <span class="timer-label">Giây</span>
+            </div>
+        </div>
+    </main>
+    
+    <div class="noise-overlay"></div>
+
+    <!-- Shader Code (Vertex & Fragment) -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        attribute vec2 a_position;
+        void main() {
+            gl_Position = vec4(a_position, 0.0, 1.0);
+        }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        #ifdef GL_ES
+        precision mediump float;
+        #endif
+
+        uniform vec2 u_resolution;
+        uniform float u_time;
+
+        // --- NOISE FUNCTIONS ---
+        vec3 hash33(vec3 p){ 
+            p = fract(p * vec3(.1031, .1030, .0973));
+            p += dot(p, p.yxz+33.33);
+            return fract((p.xxy + p.yxx)*p.zyx);
+        }
+
+        float noise(in vec3 p) {
+            vec3 i = floor(p);
+            vec3 f = fract(p); 
+            f = f * f * (3.0 - 2.0 * f);
+            return mix(mix(mix( hash33(i).x, hash33(i + vec3(1,0,0)).x, f.x),
+                           mix( hash33(i + vec3(0,1,0)).x, hash33(i + vec3(1,1,0)).x, f.x), f.y),
+                       mix(mix( hash33(i + vec3(0,0,1)).x, hash33(i + vec3(1,0,1)).x, f.x),
+                           mix( hash33(i + vec3(0,1,1)).x, hash33(i + vec3(1,1,1)).x, f.x), f.y), f.z);
+        }
+
+        // FBM (Fractal Brownian Motion) for smoke/silk texture
+        float fbm(vec3 p) {
+            float v = 0.0;
+            float a = 0.5;
+            vec3 shift = vec3(100.0);
+            for (int i = 0; i < 5; ++i) {
+                v += a * noise(p);
+                p = p * 2.0 + shift;
+                a *= 0.5;
+            }
+            return v;
+        }
+
+        void main() {
+            vec2 st = gl_FragCoord.xy/u_resolution.xy;
+            float aspect = u_resolution.x/u_resolution.y;
+            st.x *= aspect;
+
+            float time = u_time * 0.2; // Slow motion
+
+            // 1. SILK BACKGROUND LAYER
+            vec3 q = vec3(0.);
+            q.x = fbm(vec3(st.x, st.y, time) * 2.0);
+            q.y = fbm(vec3(st.x + 1.0, st.y + 2.0, time) * 3.0);
+            
+            vec3 coord = vec3(st.x, st.y, time) + q * 1.5;
+            float f = fbm(coord);
+
+            // Color palette: Deep Red to Black
+            vec3 col = mix(vec3(0.1, 0.0, 0.0), vec3(0.6, 0.0, 0.1), f*f + 0.5);
+            col = mix(col, vec3(0.9, 0.1, 0.2), f*f*f); // Highlight
+
+            // Vignette (darken corners)
+            vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+            float vig = uv.x*uv.y * (1.0-uv.x)*(1.0-uv.y);
+            col *= pow(vig, 0.2) * 1.5;
+
+            // 2. GOLDEN EMBERS / PARTICLES LAYER
+            float particles = 0.0;
+            
+            // Loop to create layers of particles
+            for(float i=0.0; i<3.0; i++){
+                vec2 p_st = st;
+                // Parallax movement
+                p_st.y -= time * (0.5 + i*0.2); 
+                p_st.x += sin(time + i)*0.1;
+                
+                // Grid for particles
+                float scale = 8.0 + i*5.0;
+                vec2 id = floor(p_st * scale);
+                vec2 f_pos = fract(p_st * scale) - 0.5;
+                
+                // Randomness for each cell
+                vec3 rand = hash33(vec3(id.x, id.y, i));
+                float size = rand.x * 0.3; // Random size
+                
+                // Blink effect
+                float blink = 0.5 + 0.5*sin(u_time * 3.0 + rand.y*10.0);
+                
+                // Circle shape
+                float d = length(f_pos);
+                float sparkle = 0.005 / (d * d * (2.0/size)); // Glowy falloff
+                
+                // Only show some particles
+                if(rand.z > 0.7) {
+                    particles += sparkle * blink * (1.0 - st.y*0.8); // Fade at top
+                }
+            }
+            
+            vec3 gold = vec3(1.0, 0.8, 0.3);
+            col += particles * gold;
+
+            gl_FragColor = vec4(col, 1.0);
+        }
+    </script>
+
+    <script src="script.js"></script>
+</body>
+</html>

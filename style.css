@@ -1,0 +1,465 @@
+:root {
+    --gold: #cfa856;
+    --gold-light: #fceeb5;
+    --red-dark: #3a0000;
+    --text-primary: #f0f0f0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background-color: #1a0000; /* Màu nền dự phòng đỏ đen */
+    color: var(--text-primary);
+    font-family: 'Cormorant Garamond', serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* --- WEBGL CANVAS --- */
+#gl-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+}
+
+.vignette-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.9) 120%);
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* --- TYPOGRAPHY & LAYOUT --- */
+.main-stage {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 4rem 6rem;
+    width: 80%;
+    max-width: 1200px;
+    background: rgba(20, 0, 0, 0.1); /* Giảm opacity để thấy rõ nền */
+    backdrop-filter: blur(2px); /* Blur rất nhẹ */
+    border: 1px solid rgba(207, 168, 86, 0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+}
+
+/* --- DECORATIVE BORDERS --- */
+.border-line {
+    position: absolute;
+    background: var(--gold);
+    opacity: 0.6;
+}
+.border-line.top { top: 20px; left: 10%; right: 10%; height: 1px; }
+.border-line.bottom { bottom: 20px; left: 10%; right: 10%; height: 1px; }
+.border-line.left { left: 20px; top: 10%; bottom: 10%; width: 1px; }
+.border-line.right { right: 20px; top: 10%; bottom: 10%; width: 1px; }
+
+.corner {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    border: 2px solid var(--gold);
+    box-shadow: 0 0 10px var(--gold);
+}
+.topleft { top: 15px; left: 15px; border-right: 0; border-bottom: 0; }
+.topright { top: 15px; right: 15px; border-left: 0; border-bottom: 0; }
+.bottomleft { bottom: 15px; left: 15px; border-right: 0; border-top: 0; }
+.bottomright { bottom: 15px; right: 15px; border-left: 0; border-top: 0; }
+
+/* --- TEXT STYLES --- */
+.reveal-wrapper {
+    overflow: hidden; /* Quan trọng cho hiệu ứng reveal từ dưới lên */
+    margin-bottom: 10px;
+}
+
+.year-label {
+    font-family: 'Montserrat', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 6px;
+    font-size: 0.9rem;
+    color: var(--gold-light);
+    opacity: 0.8;
+}
+
+.title-container {
+    margin: 2rem 0;
+    position: relative;
+}
+
+.main-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 4rem;
+    font-weight: 300;
+    letter-spacing: 15px;
+    color: #fff;
+    text-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.year-number {
+    font-family: 'Great Vibes', cursive;
+    font-size: 7rem;
+    color: var(--gold);
+    line-height: 0.8;
+    text-shadow: 0 0 20px rgba(207, 168, 86, 0.4);
+    margin-top: -10px;
+}
+
+.wish-text {
+    font-family: 'Great Vibes', cursive;
+    font-size: 3rem;
+    color: #e0e0e0;
+    margin-top: 1rem;
+}
+
+/* --- COUNTDOWN --- */
+.countdown-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    margin-top: 4rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 2rem;
+}
+
+.timer-block {
+    display: flex;
+    flex-direction: column;
+}
+
+.timer-val {
+    font-size: 3.5rem;
+    font-weight: 300;
+    line-height: 1;
+}
+
+.timer-label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    opacity: 0.6;
+    margin-top: 5px;
+}
+
+.separator {
+    font-size: 2rem;
+    font-weight: 100;
+    opacity: 0.3;
+    color: var(--gold);
+}
+
+.is-gold .timer-val {
+    color: var(--gold);
+    text-shadow: 0 0 15px rgba(207, 168, 86, 0.6);
+}
+
+/* --- LANTERNS (Refined & In Front) --- */
+.lantern-container {
+    position: absolute;
+    top: -30px; /* Hạ thấp xuống để che lên khung */
+    z-index: 50; /* Đưa lên trước main-stage */
+    animation: swing 5s ease-in-out infinite alternate;
+    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)); /* Bóng đổ lên các layer dưới */
+}
+.left { left: 8%; }
+.right { right: 8%; animation-delay: 1.5s; }
+
+.string { 
+    height: 100px; 
+    width: 2px; 
+    background: linear-gradient(to bottom, #333, var(--gold)); 
+    margin: 0 auto; 
+}
+
+.lantern-body {
+    width: 90px; height: 110px;
+    background: radial-gradient(circle at 50% 30%, #ff4d4d, #990000, #4a0000);
+    border-radius: 30px;
+    border: 2px solid var(--gold);
+    display: flex; justify-content: center; align-items: center;
+    box-shadow: 
+        0 0 20px rgba(255, 0, 0, 0.4),
+        inset 0 0 20px rgba(255, 215, 0, 0.2); /* Inner glow */
+    position: relative;
+}
+
+/* Thêm đai vàng trang trí lồng đèn */
+.lantern-body::before, .lantern-body::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 6px;
+    background: var(--gold);
+    border-radius: 2px;
+}
+.lantern-body::before { top: 15px; }
+.lantern-body::after { bottom: 15px; }
+
+.lantern-text {
+    font-family: 'Cormorant Garamond', serif;
+    color: var(--gold-light);
+    font-size: 2.2rem;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.8);
+    z-index: 2;
+}
+
+.tassel {
+    width: 8px; height: 80px;
+    background: repeating-linear-gradient(to right, var(--gold) 0, var(--gold) 2px, #b8860b 2px, #b8860b 4px);
+    margin: -2px auto 0;
+    position: relative;
+    border-radius: 0 0 4px 4px;
+}
+.tassel::after {
+    content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    width: 24px; height: 60px;
+    background: linear-gradient(to bottom, var(--red-dark), rgba(255,0,0,0));
+    clip-path: polygon(0 0, 100% 0, 80% 100%, 20% 100%);
+}
+
+@keyframes swing {
+    0% { transform: rotate(-4deg); }
+    100% { transform: rotate(4deg); }
+}
+
+/* NOISE OVERLAY */
+.noise-overlay {
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 99;
+}
+
+/* CSS cho Text Split */
+.char {
+    display: inline-block;
+    transform-origin: bottom center;
+}
+
+/* --- FINAL COUNTDOWN MODE (3s cuối) --- */
+body.final-mode .decor-layer,
+body.final-mode .main-stage > *:not(.countdown-container),
+body.final-mode .timer-block:not(.is-gold),
+body.final-mode .separator {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+body.final-mode .main-stage {
+    border-color: transparent; /* Ẩn khung viền */
+    background: transparent;
+    box-shadow: none;
+}
+
+/* Đưa số giây ra giữa và phóng to */
+body.final-mode .countdown-container {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    margin: 0;
+    z-index: 100;
+}
+
+body.final-mode .timer-block.is-gold {
+    transform: scale(4); /* Phóng to gấp 4 lần */
+}
+
+body.final-mode .timer-label {
+    display: none; /* Ẩn chữ 'Giây' */
+}
+
+/* Hiệu ứng nhịp tim cho 3 giây cuối */
+@keyframes heartbeat {
+    0% { transform: scale(4); }
+    50% { transform: scale(4.5); text-shadow: 0 0 50px var(--gold); }
+    100% { transform: scale(4); }
+}
+
+body.final-mode .timer-val {
+    animation: heartbeat 1s infinite;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+}
+
+/* --- HAPPY NEW YEAR MODE --- */
+.hny-message {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.5);
+    text-align: center;
+    width: 100%;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.hny-title {
+    font-family: 'Great Vibes', cursive;
+    font-size: 8rem;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(255, 0, 0, 0.8), 0 0 10px #fff;
+    line-height: 1.2;
+}
+
+.hny-subtitle {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 10px;
+    color: #fff;
+    text-transform: uppercase;
+    margin-top: 1rem;
+}
+
+body.celebrate .hny-message {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Ẩn bộ đếm khi chúc mừng */
+body.celebrate .countdown-container {
+    display: none;
+}
+
+/* Mobile responsive cho HNY */
+@media (max-width: 768px) {
+    .hny-title { font-size: 15vw; }
+    .hny-subtitle { font-size: 4vw; letter-spacing: 5px; }
+    body.final-mode .timer-block.is-gold { transform: scale(2.5); }
+    @keyframes heartbeat {
+        0% { transform: scale(2.5); }
+        50% { transform: scale(3); }
+        100% { transform: scale(2.5); }
+    }
+}
+
+/* --- RESPONSIVE MOBILE OPTIMIZATION (FULL DETAIL) --- */
+@media (max-width: 768px) {
+    /* 1. Container & Layout: Giữ nguyên viền và khung */
+    .main-stage {
+        width: 92%; /* Mở rộng ra gần sát mép */
+        padding: 3rem 1rem;
+        /* Giữ nguyên hiệu ứng kính mờ và viền */
+        border: 1px solid rgba(207, 168, 86, 0.15);
+    }
+
+    /* Hiển thị lại đầy đủ các nét trang trí */
+    .border-line, .corner {
+        display: block !important;
+        opacity: 0.8;
+    }
+    
+    /* Điều chỉnh vị trí viền cho màn hình nhỏ */
+    .border-line.left { left: 10px; }
+    .border-line.right { right: 10px; }
+    .border-line.top, .border-line.bottom { left: 5%; right: 5%; }
+
+    /* 2. Typography: Dùng vw để chữ luôn vừa khung */
+    .year-label {
+        font-size: 3vw; /* Tự động scale theo chiều ngang */
+        letter-spacing: 2px;
+    }
+
+    .main-title {
+        font-size: 8vw; /* Giảm từ 11vw xuống để vừa màn hình */
+        letter-spacing: 2px;
+        margin-bottom: 0.5rem;
+        white-space: normal; /* Cho phép xuống dòng để không bị tràn */
+        line-height: 1.1;
+    }
+
+    .year-number {
+        font-size: 22vw; /* Giảm nhẹ để cân đối với tiêu đề trên */
+        margin-top: -5px;
+        line-height: 1;
+    }
+
+    .wish-text {
+        font-size: 6vw;
+        margin-top: 1rem;
+    }
+
+    /* 3. Countdown: Thu nhỏ đều */
+    .countdown-container {
+        gap: 2vw; /* Khoảng cách linh hoạt */
+        margin-top: 2rem;
+    }
+
+    .timer-block {
+        min-width: auto; /* Để flex tự xử lý */
+    }
+
+    .timer-val {
+        font-size: 8vw; /* Số đếm ngược to rõ */
+    }
+
+    .timer-label {
+        font-size: 2.5vw;
+    }
+
+    .separator {
+        font-size: 6vw;
+        margin: 0;
+    }
+
+    /* 4. Decor: Tinh chỉnh lồng đèn Mobile - NHỎ HƠN & GỌN HƠN */
+    .lantern-container {
+        transform: scale(0.35); /* Thu nhỏ chỉ còn 35% kích thước gốc */
+        top: -45px;
+        transform-origin: top center;
+    }
+    
+    /* Đẩy sát ra mép màn hình để không che chữ */
+    .left { left: -20px; } 
+    .right { right: -20px; } 
+
+    /* 5. Typography: Xử lý tràn chữ & khoảng cách */
+    .hero-text {
+        margin-top: 2rem; /* Đẩy nội dung xuống xa khỏi lồng đèn */
+        position: relative;
+        z-index: 60; /* Đảm bảo chữ nổi lên trên nếu có va chạm */
+    }
+
+    .year-label {
+        font-size: 0.8rem; /* Dùng đơn vị rem cho dễ đọc */
+        letter-spacing: 2px;
+        white-space: normal; /* QUAN TRỌNG: Cho phép xuống dòng */
+        line-height: 1.5;
+        width: 80%; /* Giới hạn chiều rộng để chữ tự ngắt dòng đẹp */
+        margin: 0 auto 1rem auto; /* Căn giữa */
+    }
+
+    .main-title {
+        font-size: 10vw;
+        letter-spacing: 1px;
+        margin-bottom: 0.5rem;
+        white-space: normal;
+        line-height: 1.1;
+    }
+    .year-number { font-size: 25vw; margin-top: -10px; line-height: 1; }
+    .wish-text { font-size: 6vw; margin-top: 1rem; }
+    
+    .countdown-container { gap: 2vw; margin-top: 2rem; }
+    .timer-block { min-width: auto; }
+    .timer-val { font-size: 8vw; }
+    .timer-label { font-size: 2.5vw; }
+    .separator { font-size: 6vw; margin: 0; }
+    
+    /* Vẫn hiển thị khung viền */
+    .border-line, .corner { display: block !important; opacity: 0.8; }
+    .border-line.left { left: 10px; }
+    .border-line.right { right: 10px; }
+    .border-line.top, .border-line.bottom { left: 5%; right: 5%; }
+}
